@@ -65,8 +65,13 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 2.5rem;
             transform-origin: center;
+            padding: 5px;
+        }
+
+        .tile svg {
+            width: 100%;
+            height: 100%;
         }
 
         .tile:hover {
@@ -154,8 +159,15 @@
     </div>
 
     <script>
-        // 可靠的表情符号列表
-        const TILE_EMOJIS = ['👽', '🤖', '👾', '👻', '🐙', '🦖', '🍬', '🚀'];
+        // 游戏方块的SVG图标列表
+        const TILE_SVGS = [
+            '<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="#fca5a5"/><path d="M30 60 Q50 80 70 60" stroke="#fff" stroke-width="5" fill="none"/><circle cx="40" cy="40" r="5" fill="#fff"/><circle cx="60" cy="40" r="5" fill="#fff"/></svg>',
+            '<svg viewBox="0 0 100 100"><path d="M20 50 L50 20 L80 50 L50 80 Z" fill="#93c5fd" stroke="#fff" stroke-width="5"/><rect x="40" y="70" width="20" height="15" fill="#fff"/><circle cx="40" cy="40" r="5" fill="#fff"/><circle cx="60" cy="40" r="5" fill="#fff"/></svg>',
+            '<svg viewBox="0 0 100 100"><polygon points="50,10 90,90 10,90" fill="#a78bfa" stroke="#fff" stroke-width="5"/><rect x="45" y="45" width="10" height="30" fill="#fff"/><circle cx="35" cy="55" r="5" fill="#fff"/><circle cx="65" cy="55" r="5" fill="#fff"/></svg>',
+            '<svg viewBox="0 0 100 100"><rect x="10" y="10" width="80" height="80" rx="15" fill="#fcd34d" stroke="#fff" stroke-width="5"/><circle cx="35" cy="40" r="5" fill="#fff"/><circle cx="65" cy="40" r="5" fill="#fff"/><path d="M30 60 Q50 70 70 60" stroke="#fff" stroke-width="5" fill="none"/></svg>',
+            '<svg viewBox="0 0 100 100"><path d="M50 10 C 20 20, 20 80, 50 90 C 80 80, 80 20, 50 10" fill="#6ee7b7" stroke="#fff" stroke-width="5"/><circle cx="40" cy="40" r="5" fill="#fff"/><circle cx="60" cy="40" r="5" fill="#fff"/><path d="M40 70 L60 70" stroke="#fff" stroke-width="5" fill="none"/></svg>',
+            '<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="#fb923c" stroke="#fff" stroke-width="5"/><path d="M30 40 L40 50 L30 60 M70 40 L60 50 L70 60" stroke="#fff" stroke-width="5" fill="none"/><path d="M30 75 L70 75" stroke="#fff" stroke-width="5" fill="none"/></svg>'
+        ];
         const BOARD_SIZE = 8;
         const MOVES_LIMIT = 20;
         let score = 0;
@@ -180,9 +192,9 @@
             }
         }
 
-        // 随机获取一个表情符号
+        // 随机获取一个SVG
         function getRandomTile() {
-            return TILE_EMOJIS[Math.floor(Math.random() * TILE_EMOJIS.length)];
+            return TILE_SVGS[Math.floor(Math.random() * TILE_SVGS.length)];
         }
 
         // 渲染棋盘
@@ -195,7 +207,7 @@
                     tileElement.classList.add('tile');
                     tileElement.dataset.row = r;
                     tileElement.dataset.col = c;
-                    tileElement.textContent = tile;
+                    tileElement.innerHTML = tile;
                     tileElement.addEventListener('click', handleTileClick);
                     gameBoard.appendChild(tileElement);
                 });
@@ -224,7 +236,9 @@
         function handleTileClick(event) {
             if (isProcessing || moves <= 0) return;
 
-            const clickedTile = event.target;
+            const clickedTile = event.target.closest('.tile');
+            if (!clickedTile) return;
+
             const r = parseInt(clickedTile.dataset.row);
             const c = parseInt(clickedTile.dataset.col);
 
@@ -253,20 +267,16 @@
 
         // 交换方块并检查匹配
         function swapTiles(r1, c1, r2, c2) {
-            // 动画交换
             const tile1 = document.querySelector(`[data-row='${r1}'][data-col='${c1}']`);
             const tile2 = document.querySelector(`[data-row='${r2}'][data-col='${c2}']`);
 
-            // 应用交换类以实现过渡效果
             tile1.classList.add('swapping');
             tile2.classList.add('swapping');
             
-            // 交换文本内容
-            const tempText = tile1.textContent;
-            tile1.textContent = tile2.textContent;
-            tile2.textContent = tempText;
+            const tempHTML = tile1.innerHTML;
+            tile1.innerHTML = tile2.innerHTML;
+            tile2.innerHTML = tempHTML;
 
-            // 更新内部棋盘状态
             const tempBoard = board[r1][c1];
             board[r1][c1] = board[r2][c2];
             board[r2][c2] = tempBoard;
@@ -278,15 +288,14 @@
                 selectedTile = null;
 
                 if (!checkForMatchesAndProcess()) {
-                    // 没有匹配，换回来
                     setTimeout(() => {
                         const tempBoard2 = board[r1][c1];
                         board[r1][c1] = board[r2][c2];
                         board[r2][c2] = tempBoard2;
                         
-                        const tempText2 = tile1.textContent;
-                        tile1.textContent = tile2.textContent;
-                        tile2.textContent = tempText2;
+                        const tempHTML2 = tile1.innerHTML;
+                        tile1.innerHTML = tile2.innerHTML;
+                        tile2.innerHTML = tempHTML2;
 
                         moves++;
                         updateUI();
@@ -338,7 +347,7 @@
             if (matchesFound) {
                 matchedTiles.forEach(tile => {
                     const {r, c} = JSON.parse(tile);
-                    board[r][c] = null; // 标记为待移除
+                    board[r][c] = null;
                     score += 10;
                 });
                 return true;
@@ -348,13 +357,12 @@
 
         // 处理匹配：移除方块，掉落新方块
         function processMatches() {
-            // 从 DOM 中移除方块（通过清空文本内容）
             for (let r = 0; r < BOARD_SIZE; r++) {
                 for (let c = 0; c < BOARD_SIZE; c++) {
                     if (board[r][c] === null) {
                         const tileElement = document.querySelector(`[data-row='${r}'][data-col='${c}']`);
                         if (tileElement) {
-                            tileElement.textContent = '';
+                            tileElement.innerHTML = '';
                         }
                     }
                 }
@@ -386,8 +394,8 @@
                             const currentElement = document.querySelector(`[data-row='${r}'][data-col='${c}']`);
                             const newElement = document.querySelector(`[data-row='${emptyRow}'][data-col='${c}']`);
                             if (currentElement && newElement) {
-                                newElement.textContent = currentElement.textContent;
-                                currentElement.textContent = '';
+                                newElement.innerHTML = currentElement.innerHTML;
+                                currentElement.innerHTML = '';
                             }
                         }
                         emptyRow--;
@@ -404,7 +412,7 @@
                         board[r][c] = getRandomTile();
                         const tileElement = document.querySelector(`[data-row='${r}'][data-col='${c}']`);
                         if (tileElement) {
-                            tileElement.textContent = board[r][c];
+                            tileElement.innerHTML = board[r][c];
                         }
                     }
                 }
